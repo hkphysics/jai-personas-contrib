@@ -1,0 +1,33 @@
+[project]
+name = "jai-personas-contrib"
+version = "0.1.0"
+description = "Enhancing Jupyter AI with Personas"
+readme = "README.md"
+authors = [
+    { name = "Joseph C Wang", email = "joequant@gmail.com" }
+]
+requires-python = ">=3.9"
+
+dependencies = [
+    "jupyter_ai>=3.0.0a1"
+]
+
+[project.optional-dependencies]
+hermes_agent = [
+    "jupyter-ai-jupyternaut"
+]
+
+openclaw = [
+    "jupyter-ai-jupyternaut"
+]
+
+all = ["jai-personas-contrib[hermes_agent,openclaw]"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.entry-points."jupyter_ai.personas"]
+hermes_agent_persona = "jai_personas_contrib.hermes_agent:HermesAgentPersona"
+openclaw_persona = "jai_personas_contrib.openclaw:OpenclawPersona"
+pi_persona = "jai_personas_contrib.pi:PiAcpPersona"
