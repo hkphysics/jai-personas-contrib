@@ -1,15 +1,21 @@
+"""
+pi.py - Persona for pi
+"""
+
 import os
 import re
 import shutil
 import subprocess
+from typing import override, ClassVar
 from asyncio.subprocess import Process
 from pathlib import Path
 
-from acp.exceptions import RequestError
+from acp.schema import (
+    AgentMessageChunk,
+)
 from jupyter_ai_persona_manager import PersonaDefaults, PersonaRequirementsUnmet
-from jupyterlab_chat.models import Message
-
 from jupyter_ai_acp_client.base_acp_persona import BaseAcpPersona
+from jupyter_ai_acp_client.default_acp_client import JaiAcpClient
 
 # Path to the bundled pi.json that ships with this package.
 # Configures permission: {edit: "ask", bash: "ask"} so Pi requests
@@ -52,18 +58,19 @@ def _check_pi() -> None:
             ["pi", "--version"],
             capture_output=True,
             text=True,
+            check=False,
             timeout=5,
         )
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as e:
         raise PersonaRequirementsUnmet(
             "pi --version command timed out."
             " Please ensure pi is properly installed."
-        )
-    except FileNotFoundError:
+        ) from e
+    except FileNotFoundError as e:
         raise PersonaRequirementsUnmet(
             "pi command not found."
             " Please ensure pi is properly installed."
-        )
+        ) from e
 
     if result.returncode != 0:
         stderr = result.stderr.strip()
@@ -93,10 +100,31 @@ def _check_pi() -> None:
         )
 
 
-_check_pi()
+class PiAcpClient(JaiAcpClient):
+    """
+Acp client for Pi.  This ignores the startup message from the acp client.
+    """
+    def __init__(self, *args, **kwargs):
+        _check_pi()
+        super().__init__(*args, **kwargs)
+        self.ignore_message = True
+
+    @override
+    def _handle_agent_message_chunk(self, session_id: str, update: AgentMessageChunk) -> None:
+        """
+This ignores the first message from pi-acp which is the startup message
+        """
+        if self.ignore_message:
+            self.ignore_message = False
+            return
+        super()._handle_agent_message_chunk(session_id, update)
 
 
 class PiAcpPersona(BaseAcpPersona):
+    """
+PiAcpPersona class
+    """
+    acp_client_class: ClassVar[type[JaiAcpClient]] = PiAcpClient
     def __init__(self, *args, **kwargs):
         executable = ["npx", "-y", "pi-acp"]
         super().__init__(*args, executable=executable, **kwargs)
@@ -118,17 +146,18 @@ class PiAcpPersona(BaseAcpPersona):
             system_prompt="unused",
         )
 
-    async def _init_agent_subprocess(self) -> Process:
-        env: dict[str, str] | None = None
+    @override
+    async def _init_agent_subprocess(
+            self,
+            env: dict[str, str] | None = None
+    ) -> Process:
+        if env is None:
+            env = {}
+        env["PI_ACP_ENABLE_EMBEDDED_CONTEXT"] = "true"
 
         # Only inject bundled config if the user hasn't configured Pi themselves.
         # Precedence: PI_CONFIG env var > ~/.config/pi/pi.{json,jsonc} > bundled
         if "PI_CONFIG" not in os.environ and not _has_user_config():
-            env = os.environ.copy()
             env["PI_CONFIG"] = _BUNDLED_CONFIG
-            env["PI_ACP_ENABLE_EMBEDDED_CONTEXT"] = "true"
 
         return await super()._init_agent_subprocess(env=env)
-
-    async def is_authed(self) -> bool:
-        return True

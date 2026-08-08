@@ -1,39 +1,24 @@
-import os
-from jupyter_ai_persona_manager import PersonaDefaults
-from jupyter_ai_jupyternaut.jupyternaut.jupyternaut import JupyternautPersona
-from jupyter_ai_jupyternaut.jupyternaut.chat_models import ChatLiteLLM
-from langgraph.checkpoint.memory import MemorySaver as InMemorySaver                                                                                                                              
-from langchain.agents import create_agent
+"""
+Openclaw persona
+"""
 
-class OpenclawPersona(JupyternautPersona):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+from typing import override
+from .base_chat_persona import BaseChatPersona
 
-    @property
-    def defaults(self) -> PersonaDefaults:
-        avatar_path = str(
-            os.path.abspath(
-                os.path.join(
-                    os.path.dirname(__file__), "static", "openclaw.svg"
-                )
-            )
-        )
+class OpenclawPersona(BaseChatPersona):
+    """
+    Subclass of BaseChatPersona coded to connect to openclaw
+    """
+    default_model_id = "openai/openclaw"
+    base_url_key = "OPENCLAW_BASE_URL"
+    base_url_default = "http://localhost:18789/v1"
+    api_key_key = "OPENCLAW_API_KEY"
+    avatar_file = "openclaw.svg"
+    persona_name = "Openclaw"
 
-        return PersonaDefaults(
-            name = "Openclaw",
-            avatar_path = avatar_path,
-            description = "An agent that calls openclaw",
-            system_prompt = ""
-        )
-
-    async def get_agent(self, model_id: str, model_args, system_prompt: str):
-        memory_store = InMemorySaver() # do not persist queries
-        model = ChatLiteLLM(**model_args, model=model_id, streaming=True)
-
-        return create_agent(
-            model,
-            system_prompt=system_prompt,
-            checkpointer=memory_store,
-            tools=await self.get_tools(),
-            middleware=[self._create_tool_error_handler()]
-        )
+    @override
+    async def get_tools(self):
+        """Filter out the bash tool that causes errors with openclaw."""
+        tools = await super().get_tools()
+        # Remove the bash tool that causes errors
+        return [tool for tool in tools if getattr(tool, '__name__', "") != 'bash']
