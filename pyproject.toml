@@ -9,16 +9,17 @@ authors = [
 requires-python = ">=3.9"
 
 dependencies = [
-    "jupyter_ai>=3.0.0a1"
+    "jupyter_ai>=3.2.0a1",
+    "jupyter_ai_persona_manager>=0.2.0rc0"
 ]
 
 [project.optional-dependencies]
 hermes_agent = [
-    "jupyter-ai-jupyternaut"
+    "jupyter-ai-jupyternaut>=0.1.0"
 ]
 
 openclaw = [
-    "jupyter-ai-jupyternaut"
+    "jupyter-ai-jupyternaut>=0.1.0"
 ]
 
 all = ["jai-personas-contrib[hermes_agent,openclaw]"]
