@@ -3,6 +3,7 @@ pi.py - Persona for pi
 """
 
 import os
+from pathlib import Path
 import re
 import shutil
 import subprocess
@@ -20,7 +21,9 @@ from jupyter_ai_acp_client.default_acp_client import JaiAcpClient
 # Path to the bundled pi.json that ships with this package.
 # Configures permission: {edit: "ask", bash: "ask"} so Pi requests
 # approval before file edits and shell commands.
-_BUNDLED_CONFIG = os.path.join(os.path.dirname(__file__), "pi.json")
+_BUNDLED_CONFIG = str(
+    Path(__file__).parent / "pi.json"
+)
 
 
 def _has_user_config() -> bool:
@@ -132,18 +135,13 @@ PiAcpPersona class
     @property
     def defaults(self) -> PersonaDefaults:
         avatar_path = str(
-            os.path.abspath(
-                os.path.join(
-                    os.path.dirname(__file__), "static", "pi.svg"
-                )
-            )
+            Path(__file__).parent / "static" / "pi.svg"
         )
-
         return PersonaDefaults(
             name="Pi",
             description="Pi as an ACP agent persona.",
             avatar_path=avatar_path,
-            system_prompt="unused",
+            system_prompt="",
         )
 
     @override
