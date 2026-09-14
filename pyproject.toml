@@ -22,7 +22,7 @@ openclaw = [
     "jupyter-ai-jupyternaut>=0.1.0"
 ]
 
-all = ["jai-personas-contrib[hermes_agent,openclaw]"]
+all = ["jai-personas-contrib[hermes_agent,openclaw,pi]"]
 
 [build-system]
 requires = ["hatchling"]
