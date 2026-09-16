@@ -4,6 +4,7 @@ base_chat_persona.py
 """
 
 from __future__ import annotations
+import logging
 import os
 from pathlib import Path
 from typing import override
