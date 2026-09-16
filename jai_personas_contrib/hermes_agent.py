@@ -2,98 +2,51 @@
 hermes_agent - Persona for Hermes Agent
 """
 
-import logging
-import os
 from typing import override
 
-from jupyter_ai_jupyternaut.jupyternaut.chat_models import ChatLiteLLM
-from langchain_core.messages import BaseMessage
-from langchain_core.callbacks import CallbackManagerForLLMRun
-from langchain_core.outputs import ChatResult
-from langchain_core.language_models.chat_models import generate_from_stream
-from .base_chat_persona import BaseChatPersona
+from .base_chat_persona import BaseChatPersona, BaseDiagnosticLLM
 
 
 def _remove_reasoning_objects(obj: object | None) -> object | None:
-    """
-    Recursively remove any dictionary objects where type is set to "reasoning".
-
-    Args:
-        obj: The object to process (dict, list, or other value)
-
-    Returns:
-        The cleaned object with reasoning dicts removed
-    """
+    """Recursively remove dict objects where type is set to 'reasoning'."""
+    if obj is None:
+        return None
     if isinstance(obj, dict):
-        # Check if this dict has type="reasoning" - remove it entirely
-        if obj.get('type') == 'reasoning':
+        if obj.get("type") == "reasoning":
             return None
         return {
-            k: v for k, v in (
-                (k, _remove_reasoning_objects(val)) for k, val in obj.items()
-            )
+            k: v
+            for k, v in ((k, _remove_reasoning_objects(v)) for k, v in obj.items())
             if v is not None
         }
-
-        if isinstance(obj, list):
-            return [
-                v for i in obj if (
-                    v := _remove_reasoning_objects(i)
-                ) is not None
-            ]
-
-        # Return primitive values unchanged
-        return obj
+    if isinstance(obj, list):
+        return [v for v in (_remove_reasoning_objects(i) for i in obj) if v is not None]
+    return obj
 
 
-class HermesAgentLLM(ChatLiteLLM):
-    """
-    Override ChatLiteLLM to remove reasoning tags which causes errors
-    with Hermes
-    """
-    def _generate(
-        self,
-        messages: list[BaseMessage],
-        stop: list[str] | None = None,
-        run_manager: CallbackManagerForLLMRun | None = None,
-        stream: bool | None = None,
-        **kwargs: object,
-    ) -> ChatResult:
-        should_stream = stream if stream is not None else self.streaming
-        if should_stream:
-            stream_iter = self._stream(
-                messages, stop=stop, run_manager=run_manager, **kwargs
-            )
-            return generate_from_stream(stream_iter)
+class HermesAgentLLM(BaseDiagnosticLLM):
+    """Override LLM to remove reasoning tags which causes errors with Hermes."""
 
-        message_dicts, params = self._create_message_dicts(messages, stop)
-        message_dicts = _remove_reasoning_objects(message_dicts)
-        params = {**params, **kwargs}
-        try:
-            response = self.completion_with_retry(
-                messages=message_dicts, run_manager=run_manager, **params
-            )
-        except Exception as exc:
-            diag = (
-                f"HermesAgentLLM error: model={getattr(self,'model','?')} "
-                f"params={params} env_base={os.environ.get('HERMES_AGENT_BASE_URL','<unset>')} "
-                f"env_key_present={'HERMES_AGENT_API_KEY' in os.environ} "
-                f"original={exc}"
-            )
-            logging.getLogger(__name__).error(diag, exc_info=True)
-            raise type(exc)(f"{diag}\nCaused by: {exc}") from exc
-        return self._create_chat_result(response)
+    @override
+    def _preprocess_messages(self, message_dicts: list[dict]) -> list[dict]:
+        return _remove_reasoning_objects(message_dicts)
+
+    @override
+    def _get_diag_prefix(self) -> str:
+        return "HermesAgentLLM"
+
+    @override
+    def _get_env_keys(self) -> tuple[str, str]:
+        return ("HERMES_AGENT_BASE_URL", "HERMES_AGENT_API_KEY")
 
 
 class HermesAgentPersona(BaseChatPersona):
-    """
-    HermesAgentPersona - Uses BaseChatPersona special coded for
-    HermesAgent
-    """
-    default_model_id = "openai/hermes-agent"
-    base_url_key = "HERMES_AGENT_BASE_URL"
-    base_url_default = "http://localhost:8649/v1"
-    api_key_key = "HERMES_AGENT_API_KEY"
-    avatar_file = "hermes-agent.svg"
-    persona_name = "HermesAgent"
-    llm_class = HermesAgentLLM
+    """HermesAgentPersona - Uses BaseChatPersona special coded for HermesAgent."""
+
+    default_model_id: str = "openai/hermes-agent"
+    base_url_key: str = "HERMES_AGENT_BASE_URL"
+    base_url_default: str = "http://localhost:8649/v1"
+    api_key_key: str = "HERMES_AGENT_API_KEY"
+    avatar_file: str = "hermes-agent.svg"
+    persona_name: str = "HermesAgent"
+    llm_class: type = HermesAgentLLM

@@ -16,6 +16,67 @@ from jupyter_ai_jupyternaut.jupyternaut.jupyternaut import (
 )
 from langgraph.checkpoint.memory import MemorySaver as InMemorySaver
 from langchain.agents import create_agent
+from langchain_core.callbacks import CallbackManagerForLLMRun
+from langchain_core.language_models.chat_models import generate_from_stream
+from langchain_core.messages import BaseMessage
+from langchain_core.outputs import ChatResult
+
+
+class BaseDiagnosticLLM(ChatLiteLLM):
+    """
+    Base LLM class with diagnostic error handling.
+    Subclasses can override _preprocess_messages and _get_diag_prefix.
+    """
+
+    def _preprocess_messages(self, message_dicts: list[dict]) -> list[dict]:
+        """Hook to preprocess message dicts before completion."""
+        return message_dicts
+
+    def _get_diag_prefix(self) -> str:
+        """Return prefix for diagnostic error messages."""
+        return self.__class__.__name__
+
+    def _get_env_keys(self) -> tuple[str, str]:
+        """Return (base_url_env_key, api_key_env_key) for diagnostics."""
+        return ("", "")
+
+    @override
+    def _generate(
+        self,
+        messages: list[BaseMessage],
+        stop: list[str] | None = None,
+        run_manager: CallbackManagerForLLMRun | None = None,
+        stream: bool | None = None,
+        **kwargs: object,
+    ) -> ChatResult:
+        should_stream = stream if stream is not None else self.streaming
+        if should_stream:
+            stream_iter = self._stream(
+                messages, stop=stop, run_manager=run_manager, **kwargs
+            )
+            return generate_from_stream(stream_iter)
+
+        message_dicts, params = self._create_message_dicts(messages, stop)
+        message_dicts = self._preprocess_messages(message_dicts)
+        params = {**params, **kwargs}
+        try:
+            response = self.completion_with_retry(
+                messages=message_dicts, run_manager=run_manager, **params
+            )
+        except Exception as exc:
+            base_url_key, api_key_key = self._get_env_keys()
+            env_base = os.environ.get(base_url_key, "<unset>") if base_url_key else "<unset>"
+            env_key_present = api_key_key in os.environ if api_key_key else False
+            diag = (
+                f"{self._get_diag_prefix()} error: "
+                f"model={getattr(self, 'model', '?')} "
+                f"params={params} env_base={env_base} "
+                f"env_key_present={env_key_present} "
+                f"original={exc}"
+            )
+            logging.getLogger(__name__).error(diag, exc_info=True)
+            raise type(exc)(f"{diag}\nCaused by: {exc}") from exc
+        return self._create_chat_result(response)
 
 
 class BaseChatPersona(JupyternautPersona):

@@ -31,28 +31,12 @@ def _has_user_config() -> bool:
     return (config_dir / "pi.json").exists() or (config_dir / "pi.jsonc").exists()
 
 
-def _is_auth_error(error: Exception) -> bool:
-    message = str(error).lower()
-    return any(
-        keyword in message
-        for keyword in (
-            "api key",
-            "api_key",
-            "authentication",
-            "authorized",
-            "credential",
-            "forbidden",
-            "not configured",
-        )
-    )
-
-
 def _check_pi() -> None:
     """Raise PersonaRequirementsUnmet if pi is missing or wrong version."""
     if shutil.which("pi") is None:
         raise PersonaRequirementsUnmet(
-            "This persona requires `pi` to be installed."
-            " See https://pi.ai for installation instructions."
+            "This persona requires `pi` to be installed. "
+            "See https://pi.ai for installation instructions."
         )
 
     try:
@@ -65,20 +49,20 @@ def _check_pi() -> None:
         )
     except subprocess.TimeoutExpired as e:
         raise PersonaRequirementsUnmet(
-            "pi --version command timed out."
-            " Please ensure pi is properly installed."
+            "pi --version command timed out. "
+            "Please ensure pi is properly installed."
         ) from e
     except FileNotFoundError as e:
         raise PersonaRequirementsUnmet(
-            "pi command not found."
-            " Please ensure pi is properly installed."
+            "pi command not found. "
+            "Please ensure pi is properly installed."
         ) from e
 
     if result.returncode != 0:
         stderr = result.stderr.strip()
         error_msg = (
-            f"pi --version returned non-zero exit code {result.returncode}."
-            " Please ensure pi is properly installed."
+            f"pi --version returned non-zero exit code {result.returncode}. "
+            "Please ensure pi is properly installed."
         )
         if stderr:
             error_msg += f"\nStderr output: {stderr}"
@@ -87,18 +71,19 @@ def _check_pi() -> None:
     version_match = re.search(r"(\d+\.\d+\.\d+)", result.stdout)
     if not version_match:
         raise PersonaRequirementsUnmet(
-            "Could not extract version number from pi --version output."
-            f" Got: {result.stdout.strip()}"
+            f"Could not extract version number from pi --version output. "
+            f"Got: {result.stdout.strip()}"
         )
 
     version_str = version_match.group(1)
     current_version = tuple(int(x) for x in version_str.split("."))
+    min_version = (0, 70, 0)
 
-    if current_version < (0, 70, 0):
+    if current_version < min_version:
         raise PersonaRequirementsUnmet(
-            f"pi version {version_str} is installed,"
-            " but version >=0.70.0 is required."
-            " Please upgrade pi. See https://pi.ai for instructions."
+            f"pi version {version_str} is installed, "
+            f"but version >={'.'.join(map(str, min_version))} is required. "
+            "Please upgrade pi. See https://pi.ai for instructions."
         )
 
 
@@ -131,9 +116,9 @@ PiAcpPersona class
     """
 
     acp_client_class: ClassVar[type[JaiAcpClient]] = PiAcpClient
-    def __init__(self, *args, **kwargs):
-        executable = ["npx", "-y", "pi-acp"]
-        super().__init__(*args, executable=executable, **kwargs)
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, executable=["npx", "-y", "pi-acp"], **kwargs)
 
     @property
     def defaults(self) -> PersonaDefaults:
