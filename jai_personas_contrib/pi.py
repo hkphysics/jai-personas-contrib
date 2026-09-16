@@ -29,7 +29,9 @@ _MIN_VERSION = (0, 70, 0)
 def _has_user_config() -> bool:
     """Check if user has a global Pi config file."""
     config_dir = Path.home() / ".config" / "pi"
-    return (config_dir / "pi.json").exists() or (config_dir / "pi.jsonc").exists()
+    return any(
+        (config_dir / name).exists() for name in ("pi.json", "pi.jsonc")
+    )
 
 
 def _check_pi() -> None:

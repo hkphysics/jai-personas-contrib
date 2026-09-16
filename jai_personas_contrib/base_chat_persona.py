@@ -118,11 +118,10 @@ class BaseChatPersona(JupyternautPersona):
             self.api_key_key, ""
         )
 
-        diag = (
-            f"BaseChatPersona resolving model: selected={selected} "
-            f"api_base={api_base} api_key_present={self.api_key_key in os.environ}"
+        logging.getLogger(__name__).debug(
+            "DIAG: BaseChatPersona resolving model: selected=%s api_base=%s api_key_present=%s",
+            selected, api_base, self.api_key_key in os.environ
         )
-        logging.getLogger(__name__).warning("DIAG: %s", diag)
 
         return self.default_model_id, {
             "api_base": api_base,
