@@ -13,10 +13,6 @@ class OpenclawLLM(BaseDiagnosticLLM):
     """Override LLM to add diagnostics on failure."""
 
     @override
-    def _get_diag_prefix(self) -> str:
-        return "OpenclawLLM"
-
-    @override
     def _get_env_keys(self) -> tuple[str, str]:
         return ("OPENCLAW_BASE_URL", "OPENCLAW_API_KEY")
 

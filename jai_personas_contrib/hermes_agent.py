@@ -34,10 +34,6 @@ class HermesAgentLLM(BaseDiagnosticLLM):
         return _remove_reasoning_objects(message_dicts)
 
     @override
-    def _get_diag_prefix(self) -> str:
-        return "HermesAgentLLM"
-
-    @override
     def _get_env_keys(self) -> tuple[str, str]:
         return ("HERMES_AGENT_BASE_URL", "HERMES_AGENT_API_KEY")
 
