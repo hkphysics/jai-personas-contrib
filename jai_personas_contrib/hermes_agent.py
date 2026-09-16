@@ -2,7 +2,10 @@
 hermes_agent - Persona for Hermes Agent
 """
 
+import logging
+import os
 from typing import override
+
 from jupyter_ai_jupyternaut.jupyternaut.chat_models import ChatLiteLLM
 from langchain_core.messages import BaseMessage
 from langchain_core.callbacks import CallbackManagerForLLMRun
@@ -10,7 +13,8 @@ from langchain_core.outputs import ChatResult
 from langchain_core.language_models.chat_models import generate_from_stream
 from .base_chat_persona import BaseChatPersona
 
-def _remove_reasoning_objects(obj: object | None):
+
+def _remove_reasoning_objects(obj: object | None) -> object | None:
     """
     Recursively remove any dictionary objects where type is set to "reasoning".
 
@@ -31,15 +35,15 @@ def _remove_reasoning_objects(obj: object | None):
             if v is not None
         }
 
-    if isinstance(obj, list):
-        return [
-            v for i in obj if (
-                v := _remove_reasoning_objects(i)
-            ) is not None
-        ]
+        if isinstance(obj, list):
+            return [
+                v for i in obj if (
+                    v := _remove_reasoning_objects(i)
+                ) is not None
+            ]
 
-    # Return primitive values unchanged
-    return obj
+        # Return primitive values unchanged
+        return obj
 
 
 class HermesAgentLLM(ChatLiteLLM):
@@ -65,9 +69,19 @@ class HermesAgentLLM(ChatLiteLLM):
         message_dicts, params = self._create_message_dicts(messages, stop)
         message_dicts = _remove_reasoning_objects(message_dicts)
         params = {**params, **kwargs}
-        response = self.completion_with_retry(
-            messages=message_dicts, run_manager=run_manager, **params
-        )
+        try:
+            response = self.completion_with_retry(
+                messages=message_dicts, run_manager=run_manager, **params
+            )
+        except Exception as exc:
+            diag = (
+                f"HermesAgentLLM error: model={getattr(self,'model','?')} "
+                f"params={params} env_base={os.environ.get('HERMES_AGENT_BASE_URL','<unset>')} "
+                f"env_key_present={'HERMES_AGENT_API_KEY' in os.environ} "
+                f"original={exc}"
+            )
+            logging.getLogger(__name__).error(diag, exc_info=True)
+            raise type(exc)(f"{diag}\nCaused by: {exc}") from exc
         return self._create_chat_result(response)
 
 

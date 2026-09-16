@@ -9,7 +9,6 @@ import shutil
 import subprocess
 from typing import override, ClassVar
 from asyncio.subprocess import Process
-from pathlib import Path
 
 from acp.schema import (
     AgentMessageChunk,
@@ -107,7 +106,10 @@ class PiAcpClient(JaiAcpClient):
     """
 Acp client for Pi.  This ignores the startup message from the acp client.
     """
-    def __init__(self, *args, **kwargs):
+
+    ignore_message: bool
+
+    def __init__(self, *args, **kwargs) -> None:
         _check_pi()
         super().__init__(*args, **kwargs)
         self.ignore_message = True
@@ -127,6 +129,7 @@ class PiAcpPersona(BaseAcpPersona):
     """
 PiAcpPersona class
     """
+
     acp_client_class: ClassVar[type[JaiAcpClient]] = PiAcpClient
     def __init__(self, *args, **kwargs):
         executable = ["npx", "-y", "pi-acp"]

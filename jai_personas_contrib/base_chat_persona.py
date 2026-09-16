@@ -3,6 +3,7 @@ Base class for Chat Personas
 base_chat_persona.py
 """
 
+import logging
 import os
 from pathlib import Path
 from typing import override
@@ -22,13 +23,13 @@ class BaseChatPersona(JupyternautPersona):
     Base class for chat personas with common functionality
     """
 
-    default_model_id = "placeholder"
-    base_url_key = "PLACEHOLDER_BASE_URL"
-    base_url_default = "http://localhost:8000/v1"
-    api_key_key = "API_KEY"
-    avatar_file = "default_avatar.svg"
-    persona_name = "BaseChatPersona"
-    llm_class = ChatLiteLLM
+    default_model_id: str = "placeholder"
+    base_url_key: str = "PLACEHOLDER_BASE_URL"
+    base_url_default: str = "http://localhost:8000/v1"
+    api_key_key: str = "API_KEY"
+    avatar_file: str = "default_avatar.svg"
+    persona_name: str = "BaseChatPersona"
+    llm_class: type[ChatLiteLLM] = ChatLiteLLM
 
     @property
     def defaults(self) -> PersonaDefaults:
@@ -59,13 +60,19 @@ class BaseChatPersona(JupyternautPersona):
             self.api_key_key, ""
         )
 
+        diag = (
+            f"BaseChatPersona resolving model: selected={selected} "
+            f"api_base={api_base} api_key_present={self.api_key_key in os.environ}"
+        )
+        logging.getLogger(__name__).warning("DIAG: %s", diag)
+
         return self.default_model_id, {
             "api_base": api_base,
             "api_key": api_key
         }
 
     @override
-    async def get_agent(self, model_id: str, model_args, system_prompt: str):
+    async def get_agent(self, model_id: str, model_args: dict[str, object], system_prompt: str) -> object:
         """ Get agent and force no memory """
         model = self.llm_class(**model_args, model=model_id, streaming=True)
         memory_store = InMemorySaver()
