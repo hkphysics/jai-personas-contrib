@@ -3,7 +3,7 @@ Base class for Chat Personas
 base_chat_persona.py
 """
 
-import logging
+from __future__ import annotations
 import os
 from pathlib import Path
 from typing import override
@@ -14,12 +14,14 @@ from jupyter_ai_jupyternaut.jupyternaut.jupyternaut import (
     JupyternautPersona,
     DEFAULT_MODEL_ID as JUPYTERNAUT_DEFAULT_MODEL_ID
 )
-from langgraph.checkpoint.memory import MemorySaver as InMemorySaver
+from langgraph.checkpoint.memory import MemorySaver as _InMemorySaver
 from langchain.agents import create_agent
 from langchain_core.callbacks import CallbackManagerForLLMRun
 from langchain_core.language_models.chat_models import generate_from_stream
 from langchain_core.messages import BaseMessage
 from langchain_core.outputs import ChatResult
+
+_MEMORY_SAVER = _InMemorySaver()
 
 
 class BaseDiagnosticLLM(ChatLiteLLM):
@@ -94,7 +96,7 @@ class BaseChatPersona(JupyternautPersona):
 
     @property
     def defaults(self) -> PersonaDefaults:
-        """ Create defaults """
+        """Return default persona metadata."""
         avatar_path = str(
             Path(__file__).parent / "static" / self.avatar_file
         )
@@ -134,14 +136,13 @@ class BaseChatPersona(JupyternautPersona):
 
     @override
     async def get_agent(self, model_id: str, model_args: dict[str, object], system_prompt: str) -> object:
-        """ Get agent and force no memory """
+        """Build the agent with a fresh in-memory checkpointer."""
         model = self.llm_class(**model_args, model=model_id, streaming=True)
-        memory_store = InMemorySaver()
 
         return create_agent(
             model,
             system_prompt=system_prompt,
-            checkpointer=memory_store,
+            checkpointer=_MEMORY_SAVER,
             tools=await self.get_tools(),
             middleware=[self._create_tool_error_handler()],
         )

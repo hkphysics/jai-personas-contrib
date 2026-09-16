@@ -2,13 +2,15 @@
 pi.py - Persona for pi
 """
 
+from __future__ import annotations
+
 import os
 import re
 import shutil
 import subprocess
 from asyncio.subprocess import Process
 from pathlib import Path
-from typing import ClassVar, override
+from typing import override
 
 from acp.schema import (
     AgentMessageChunk,
@@ -21,6 +23,7 @@ from jupyter_ai_acp_client.default_acp_client import JaiAcpClient
 # Configures permission: {edit: "ask", bash: "ask"} so Pi requests
 # approval before file edits and shell commands.
 _BUNDLED_CONFIG = Path(__file__).parent / "pi.json"
+_MIN_VERSION = (0, 70, 0)
 
 
 def _has_user_config() -> bool:
@@ -31,7 +34,6 @@ def _has_user_config() -> bool:
 
 def _check_pi() -> None:
     """Raise PersonaRequirementsUnmet if pi is missing or wrong version."""
-    _MIN_VERSION = (0, 70, 0)
     if shutil.which("pi") is None:
         raise PersonaRequirementsUnmet(
             "This persona requires `pi` to be installed. "
@@ -85,20 +87,13 @@ def _check_pi() -> None:
 
 
 class PiAcpClient(JaiAcpClient):
-    """
-Acp client for Pi.  This ignores the startup message from the acp client.
-    """
+    """Acp client for Pi.  This ignores the startup message from the acp client."""
 
     ignore_message: bool = True
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-
     @override
     def _handle_agent_message_chunk(self, session_id: str, update: AgentMessageChunk) -> None:
-        """
-Ignore the first message from pi-acp which is the startup message.
-        """
+        """Ignore the first message from pi-acp which is the startup message."""
         if self.ignore_message:
             self.ignore_message = False
             return
@@ -106,11 +101,9 @@ Ignore the first message from pi-acp which is the startup message.
 
 
 class PiAcpPersona(BaseAcpPersona):
-    """
-PiAcpPersona class
-    """
+    """PiAcpPersona class."""
 
-    acp_client_class: ClassVar[type[JaiAcpClient]] = PiAcpClient
+    acp_client_class: type[JaiAcpClient] = PiAcpClient
 
     def __init__(self, *args, **kwargs) -> None:
         _check_pi()

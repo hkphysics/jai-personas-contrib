@@ -2,6 +2,8 @@
 hermes_agent - Persona for Hermes Agent
 """
 
+from __future__ import annotations
+
 from typing import override
 
 from .base_chat_persona import BaseChatPersona, BaseDiagnosticLLM
