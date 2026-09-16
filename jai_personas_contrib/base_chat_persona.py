@@ -28,16 +28,15 @@ _MEMORY_SAVER = _InMemorySaver()
 class BaseDiagnosticLLM(ChatLiteLLM):
     """
     Base LLM class with diagnostic error handling.
-    Subclasses can override _preprocess_messages and _get_env_keys.
+    Subclasses can override _preprocess_messages, base_url_key, and api_key_key.
     """
 
     def _preprocess_messages(self, message_dicts: list[dict]) -> list[dict]:
         """Hook to preprocess message dicts before completion."""
         return message_dicts
 
-    def _get_env_keys(self) -> tuple[str, str]:
-        """Return (base_url_env_key, api_key_env_key) for diagnostics."""
-        return ("", "")
+    base_url_key: str = ""
+    api_key_key: str = ""
 
     @override
     def _generate(
@@ -63,9 +62,8 @@ class BaseDiagnosticLLM(ChatLiteLLM):
                 messages=message_dicts, run_manager=run_manager, **params
             )
         except Exception as exc:
-            base_url_key, api_key_key = self._get_env_keys()
-            env_base = os.environ.get(base_url_key, "<unset>") if base_url_key else "<unset>"
-            env_key_present = api_key_key in os.environ if api_key_key else False
+            env_base = os.environ.get(self.base_url_key, "<unset>") if self.base_url_key else "<unset>"
+            env_key_present = self.api_key_key in os.environ if self.api_key_key else False
             diag = (
                 f"{self.__class__.__name__} error: "
                 f"model={getattr(self, 'model', '?')} "

@@ -12,9 +12,8 @@ from .base_chat_persona import BaseChatPersona, BaseDiagnosticLLM
 class OpenclawLLM(BaseDiagnosticLLM):
     """Override LLM to add diagnostics on failure."""
 
-    @override
-    def _get_env_keys(self) -> tuple[str, str]:
-        return ("OPENCLAW_BASE_URL", "OPENCLAW_API_KEY")
+    base_url_key: str = "OPENCLAW_BASE_URL"
+    api_key_key: str = "OPENCLAW_API_KEY"
 
 
 class OpenclawPersona(BaseChatPersona):

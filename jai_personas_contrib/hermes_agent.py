@@ -29,13 +29,12 @@ def _remove_reasoning_objects(obj: object | None) -> object | None:
 class HermesAgentLLM(BaseDiagnosticLLM):
     """Override LLM to remove reasoning tags which causes errors with Hermes."""
 
+    base_url_key: str = "HERMES_AGENT_BASE_URL"
+    api_key_key: str = "HERMES_AGENT_API_KEY"
+
     @override
     def _preprocess_messages(self, message_dicts: list[dict]) -> list[dict]:
         return _remove_reasoning_objects(message_dicts)
-
-    @override
-    def _get_env_keys(self) -> tuple[str, str]:
-        return ("HERMES_AGENT_BASE_URL", "HERMES_AGENT_API_KEY")
 
 
 class HermesAgentPersona(BaseChatPersona):
