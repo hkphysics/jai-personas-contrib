@@ -3,12 +3,12 @@ pi.py - Persona for pi
 """
 
 import os
-from pathlib import Path
 import re
 import shutil
 import subprocess
-from typing import override, ClassVar
 from asyncio.subprocess import Process
+from pathlib import Path
+from typing import ClassVar, override
 
 from acp.schema import (
     AgentMessageChunk,
@@ -20,9 +20,7 @@ from jupyter_ai_acp_client.default_acp_client import JaiAcpClient
 # Path to the bundled pi.json that ships with this package.
 # Configures permission: {edit: "ask", bash: "ask"} so Pi requests
 # approval before file edits and shell commands.
-_BUNDLED_CONFIG = str(
-    Path(__file__).parent / "pi.json"
-)
+_BUNDLED_CONFIG = Path(__file__).parent / "pi.json"
 
 
 def _has_user_config() -> bool:
@@ -33,6 +31,7 @@ def _has_user_config() -> bool:
 
 def _check_pi() -> None:
     """Raise PersonaRequirementsUnmet if pi is missing or wrong version."""
+    _MIN_VERSION = (0, 70, 0)
     if shutil.which("pi") is None:
         raise PersonaRequirementsUnmet(
             "This persona requires `pi` to be installed. "
@@ -77,12 +76,10 @@ def _check_pi() -> None:
 
     version_str = version_match.group(1)
     current_version = tuple(int(x) for x in version_str.split("."))
-    min_version = (0, 70, 0)
-
-    if current_version < min_version:
+    if current_version < _MIN_VERSION:
         raise PersonaRequirementsUnmet(
             f"pi version {version_str} is installed, "
-            f"but version >={'.'.join(map(str, min_version))} is required. "
+            f"but version >={'.'.join(map(str, _MIN_VERSION))} is required. "
             "Please upgrade pi. See https://pi.ai for instructions."
         )
 
@@ -92,17 +89,15 @@ class PiAcpClient(JaiAcpClient):
 Acp client for Pi.  This ignores the startup message from the acp client.
     """
 
-    ignore_message: bool
+    ignore_message: bool = True
 
     def __init__(self, *args, **kwargs) -> None:
-        _check_pi()
         super().__init__(*args, **kwargs)
-        self.ignore_message = True
 
     @override
     def _handle_agent_message_chunk(self, session_id: str, update: AgentMessageChunk) -> None:
         """
-This ignores the first message from pi-acp which is the startup message
+Ignore the first message from pi-acp which is the startup message.
         """
         if self.ignore_message:
             self.ignore_message = False
@@ -118,13 +113,12 @@ PiAcpPersona class
     acp_client_class: ClassVar[type[JaiAcpClient]] = PiAcpClient
 
     def __init__(self, *args, **kwargs) -> None:
+        _check_pi()
         super().__init__(*args, executable=["npx", "-y", "pi-acp"], **kwargs)
 
     @property
     def defaults(self) -> PersonaDefaults:
-        avatar_path = str(
-            Path(__file__).parent / "static" / "pi.svg"
-        )
+        avatar_path = str(Path(__file__).parent / "static" / "pi.svg")
         return PersonaDefaults(
             name="Pi",
             description="Pi as an ACP agent persona.",
@@ -144,6 +138,6 @@ PiAcpPersona class
         # Only inject bundled config if the user hasn't configured Pi themselves.
         # Precedence: PI_CONFIG env var > ~/.config/pi/pi.{json,jsonc} > bundled
         if "PI_CONFIG" not in os.environ and not _has_user_config():
-            env["PI_CONFIG"] = _BUNDLED_CONFIG
+            env["PI_CONFIG"] = str(_BUNDLED_CONFIG)
 
         return await super()._init_agent_subprocess(env=env)
