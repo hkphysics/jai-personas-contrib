@@ -22,11 +22,30 @@ openclaw = [
     "jupyter-ai-jupyternaut>=0.1.0rc0"
 ]
 
+openpibot = [
+    "jupyter-ai-jupyternaut>=0.1.0rc0"
+]
+
 pi = [
     "jupyter-ai-acp-client>=0.2.0rc0"
 ]
 
-all = ["jai-personas-contrib[hermes_agent,openclaw,pi]"]
+all = ["jai-personas-contrib[hermes_agent,openclaw,pi,openpibot]"]
+
+[tool.black]
+target-version = ["py312"]
+line-length = 100
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "G", "UP"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+strict = false
 
 [build-system]
 requires = ["hatchling"]
@@ -36,3 +55,4 @@ build-backend = "hatchling.build"
 hermes_agent_persona = "jai_personas_contrib.hermes_agent:HermesAgentPersona"
 openclaw_persona = "jai_personas_contrib.openclaw:OpenclawPersona"
 pi_persona = "jai_personas_contrib.pi:PiAcpPersona"
+openpibot_persona = "jai_personas_contrib.openpibot:OpenpibotPersona"
