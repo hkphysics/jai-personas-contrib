@@ -103,8 +103,9 @@ def _resolve_pi_acp_executable() -> list[str]:
 
     Prefers a globally installed `pi-acp` in PATH; falls back to `npx -y pi-acp`.
     """
-    if shutil.which("pi-acp") is not None:
-        return ["pi-acp"]
+    executable = shutil.which("pi-acp")
+    if executable is not None:
+        return [executable]
     return ["npx", "-y", "pi-acp"]
 
 
