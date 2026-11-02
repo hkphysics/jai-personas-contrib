@@ -25,7 +25,7 @@ class OpenclawPersona(BaseChatPersona):
     api_key_key: str = "OPENCLAW_API_KEY"
     avatar_file: str = "openclaw.svg"
     persona_name: str = "Openclaw"
-    llm_class: type = OpenclawLLM
+    llm_class: type[BaseDiagnosticLLM] = OpenclawLLM
 
     @override
     async def get_tools(self) -> list:

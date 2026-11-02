@@ -9,7 +9,7 @@ from typing import override
 from .base_chat_persona import BaseChatPersona, BaseDiagnosticLLM
 
 
-def _remove_reasoning_objects(obj: object | None) -> object | None:
+def _remove_reasoning_objects(obj: object) -> object:
     """Recursively remove dict objects where type is set to 'reasoning'."""
     if obj is None:
         return None
@@ -46,4 +46,4 @@ class HermesAgentPersona(BaseChatPersona):
     api_key_key: str = "HERMES_AGENT_API_KEY"
     avatar_file: str = "hermes-agent.svg"
     persona_name: str = "HermesAgent"
-    llm_class: type = HermesAgentLLM
+    llm_class: type[BaseDiagnosticLLM] = HermesAgentLLM
