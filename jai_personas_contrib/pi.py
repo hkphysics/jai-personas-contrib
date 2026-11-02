@@ -15,9 +15,9 @@ from typing import override
 from acp.schema import (
     AgentMessageChunk,
 )
-from jupyter_ai_persona_manager import PersonaDefaults, PersonaRequirementsUnmet
 from jupyter_ai_acp_client.base_acp_persona import BaseAcpPersona
 from jupyter_ai_acp_client.default_acp_client import JaiAcpClient
+from jupyter_ai_persona_manager import PersonaDefaults, PersonaRequirementsUnmet
 
 # Path to the bundled pi.json that ships with this package.
 # Configures permission: {edit: "ask", bash: "ask"} so Pi requests
@@ -29,9 +29,7 @@ _MIN_VERSION = (0, 70, 0)
 def _has_user_config() -> bool:
     """Check if user has a global Pi config file."""
     config_dir = Path.home() / ".config" / "pi"
-    return any(
-        (config_dir / name).exists() for name in ("pi.json", "pi.jsonc")
-    )
+    return any((config_dir / name).exists() for name in ("pi.json", "pi.jsonc"))
 
 
 def _check_pi() -> None:
@@ -52,13 +50,11 @@ def _check_pi() -> None:
         )
     except subprocess.TimeoutExpired as e:
         raise PersonaRequirementsUnmet(
-            "pi --version command timed out. "
-            "Please ensure pi is properly installed."
+            "pi --version command timed out. " "Please ensure pi is properly installed."
         ) from e
     except FileNotFoundError as e:
         raise PersonaRequirementsUnmet(
-            "pi command not found. "
-            "Please ensure pi is properly installed."
+            "pi command not found. " "Please ensure pi is properly installed."
         ) from e
 
     if result.returncode != 0:
@@ -102,6 +98,16 @@ class PiAcpClient(JaiAcpClient):
         super()._handle_agent_message_chunk(session_id, update)
 
 
+def _resolve_pi_acp_executable() -> list[str]:
+    """Return the executable to run pi-acp.
+
+    Prefers a globally installed `pi-acp` in PATH; falls back to `npx -y pi-acp`.
+    """
+    if shutil.which("pi-acp") is not None:
+        return ["pi-acp"]
+    return ["npx", "-y", "pi-acp"]
+
+
 class PiAcpPersona(BaseAcpPersona):
     """PiAcpPersona class."""
 
@@ -109,7 +115,8 @@ class PiAcpPersona(BaseAcpPersona):
 
     def __init__(self, *args, **kwargs) -> None:
         _check_pi()
-        super().__init__(*args, executable=["npx", "-y", "pi-acp"], **kwargs)
+        executable = _resolve_pi_acp_executable()
+        super().__init__(*args, executable=executable, **kwargs)
 
     @property
     def defaults(self) -> PersonaDefaults:
@@ -122,10 +129,7 @@ class PiAcpPersona(BaseAcpPersona):
         )
 
     @override
-    async def _init_agent_subprocess(
-            self,
-            env: dict[str, str] | None = None
-    ) -> Process:
+    async def _init_agent_subprocess(self, env: dict[str, str] | None = None) -> Process:
         if env is None:
             env = {}
         env["PI_ACP_ENABLE_EMBEDDED_CONTEXT"] = "true"
